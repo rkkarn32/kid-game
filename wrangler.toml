@@ -1,4 +1,4 @@
-name = "kid-num"
+name = "kid-game"
 main = "worker.ts"
 compatibility_date = "2024-09-23"
 
