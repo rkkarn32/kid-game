@@ -1,0 +1,8 @@
+name = "kid-num"
+main = "worker.ts"
+compatibility_date = "2024-09-23"
+
+# Bind the static assets directory
+[assets]
+directory = "./dist"
+binding = "ASSETS"
