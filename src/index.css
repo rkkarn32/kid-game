@@ -1,18 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --animate-fade-in: fade-in 0.5s ease-out;
-  --animate-shake: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  --font-sans: 'Outfit', sans-serif;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-shake: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+  --animate-pop: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
   @keyframes fade-in {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.9);
+    }
+
+    100% {
+      transform: scale(1);
+    }
   }
 
   @keyframes shake {
-    10%, 90% { transform: translate3d(-1px, 0, 0); }
-    20%, 80% { transform: translate3d(2px, 0, 0); }
-    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-    40%, 60% { transform: translate3d(4px, 0, 0); }
+
+    10%,
+    90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+      transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+      transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+      transform: translate3d(4px, 0, 0);
+    }
+  }
+
+  --shadow-neo: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-neo-lg: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-neo-hover: 6px 6px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-neo-active: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+/* Neo-Bauhaus Utilities */
+@layer utilities {
+  .neo-border {
+    @apply border-4 border-black;
+  }
+
+  .neo-shadow {
+    @apply shadow-neo;
+  }
+
+  .neo-shadow-lg {
+    @apply shadow-neo-lg;
+  }
+
+  .neo-shadow-hover {
+    @apply hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-neo-hover active:translate-x-[0px] active:translate-y-[0px] active:shadow-neo-active;
+  }
+
+  .neo-card {
+    @apply bg-white border-4 border-black shadow-neo-lg rounded-3xl;
+  }
+
+  .neo-btn {
+    @apply border-2 border-black shadow-neo active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all duration-200 font-bold;
+  }
+
+  .neo-btn-lg {
+    @apply border-4 border-black shadow-neo-lg active:shadow-none active:translate-x-[8px] active:translate-y-[8px] transition-all duration-200 font-black;
   }
 }

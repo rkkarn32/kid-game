@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { SLIDER_MIN, SLIDER_MAX } from '../util/constants';
 
 export const Settings: React.FC<{
   min: number;
@@ -7,41 +8,198 @@ export const Settings: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = ({ min, max, onUpdate, isOpen, onClose }) => {
+  /* Local state for buffering changes */
+  const [localMin, setLocalMin] = useState(min);
+  const [localMax, setLocalMax] = useState(max);
+
+  /* Reset local state when opening */
+  useEffect(() => {
+    if (isOpen) {
+      setLocalMin(min);
+      setLocalMax(max);
+    }
+  }, [isOpen, min, max]);
+
+  const [contentType, setContentType] = useState<'numbers' | 'letters' | 'both'>('numbers');
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState<'min' | 'max' | null>(null);
+
+  const getPercentage = (value: number) => {
+    return ((value - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100;
+  };
+
+  const handleMouseDown = (type: 'min' | 'max') => {
+    setIsDragging(type);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging || !sliderRef.current) return;
+
+      const rect = sliderRef.current.getBoundingClientRect();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+
+      // Calculate percentage based on click position
+      let percentage = (clientX - rect.left) / rect.width;
+      percentage = Math.max(0, Math.min(1, percentage));
+
+      const rawValue = Math.round(percentage * (SLIDER_MAX - SLIDER_MIN) + SLIDER_MIN);
+
+      if (isDragging === 'min') {
+        // Min is fixed per previous request
+      } else {
+        const newMax = Math.max(rawValue, localMin + 1);
+        setLocalMax(Math.min(SLIDER_MAX, newMax));
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(null);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleMouseMove);
+      window.addEventListener('touchend', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging, localMin, localMax]);
+
   if (!isOpen) return null;
 
+  const minPos = getPercentage(localMin);
+  const maxPos = getPercentage(localMax);
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl max-w-sm w-full transform transition-all scale-100">
-        <h2 className="text-3xl font-bold mb-6 text-gray-800 text-center">Settings ⚙️</h2>
-        
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Start From (Min)</label>
-            <input 
-              type="number" 
-              value={min}
-              onChange={(e) => onUpdate(Math.max(0, parseInt(e.target.value) || 0), max)}
-              className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 text-2xl font-bold text-center bg-gray-50 text-gray-900"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Go Up To (Max)</label>
-            <input 
-              type="number" 
-              value={max}
-              onChange={(e) => onUpdate(min, Math.max(min + 1, parseInt(e.target.value) || 10))}
-              className="w-full p-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 text-2xl font-bold text-center bg-gray-50 text-gray-900"
-            />
-          </div>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4 font-sans">
+      <div className="bg-[#f5f5f5] border-[3px] border-black rounded-2xl w-full max-w-md shadow-2xl relative overflow-hidden flex flex-col">
+
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b-[3px] border-black bg-white">
+          <h2 className="text-2xl font-black text-black tracking-tight">Game Settings</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-full transition-colors font-bold text-xl"
+          >
+            ✕
+          </button>
         </div>
 
-        <button 
-          onClick={onClose}
-          className="w-full mt-8 bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-600 active:scale-95 transition-all text-xl"
-        >
-          Save & Close
-        </button>
+        <div className="p-6 space-y-8 bg-[#f5f5f5]">
+
+          {/* Content Type Selector */}
+          <div>
+            <h3 className="text-lg font-black mb-4 text-black">Content Type</h3>
+            <div className="flex gap-4">
+              {[
+                { id: 'numbers', label: '123', sub: 'Numbers' },
+                { id: 'letters', label: 'ABC', sub: 'Letters' },
+                { id: 'both', label: 'All', sub: 'Both' }
+              ].map((type) => (
+                <div key={type.id} className="flex-1 flex flex-col items-center gap-2 cursor-pointer" onClick={() => setContentType(type.id as any)}>
+                  <div className={`w-full h-14 rounded-xl border-[3px] border-black flex items-center justify-center text-lg font-bold transition-all ${contentType === type.id
+                    ? 'bg-[#1E2D43] text-white'
+                    : 'bg-white text-black hover:bg-gray-50'
+                    }`}>
+                    {type.label}
+                  </div>
+                  <span className={`text-xs font-bold ${contentType === type.id ? 'text-[#1E2D43]' : 'text-gray-500'}`}>
+                    {type.sub}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Number Range */}
+          <div>
+            <div className="flex justify-between items-end mb-4">
+              <h3 className="text-lg font-black text-black">Number Range</h3>
+              <span className="text-lg font-black text-[#1E2D43]">{localMin} — {localMax}</span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Min Input */}
+              <div className="flex flex-col gap-1 w-20">
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Min</label>
+                <input
+                  type="number"
+                  value={localMin}
+                  readOnly // Fixed min
+                  className="w-full h-12 border-[3px] border-black rounded-lg text-center font-bold text-xl bg-gray-100 text-gray-500 cursor-not-allowed"
+                />
+              </div>
+
+              {/* Slider Track */}
+              <div className="flex-1 relative h-12 flex items-center group cursor-pointer" ref={sliderRef}>
+                {/* Background Track */}
+                <div className="w-full h-2 bg-gray-300 rounded-full relative">
+                  {/* Active Range */}
+                  <div
+                    className="absolute top-0 h-full bg-[#1E2D43] rounded-full"
+                    style={{
+                      left: `${minPos}%`,
+                      width: `${maxPos - minPos}%`
+                    }}
+                  ></div>
+
+                  {/* Min Thumb */}
+                  <div
+                    className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-white border-[3px] border-black rounded-full shadow-sm z-10"
+                    style={{ left: `${minPos}%` }}
+                  ></div>
+
+                  {/* Max Thumb */}
+                  <div
+                    className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-[#1E2D43] border-[3px] border-black rounded-full cursor-grab active:cursor-grabbing hover:scale-110 transition-transform shadow-sm z-10"
+                    style={{ left: `${maxPos}%` }}
+                    onMouseDown={() => handleMouseDown('max')}
+                    onTouchStart={() => handleMouseDown('max')}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Max Input */}
+              <div className="flex flex-col gap-1 w-20">
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Max</label>
+                <input
+                  type="number"
+                  value={localMax}
+                  onChange={(e) => setLocalMax(Math.min(SLIDER_MAX, Math.max(localMin + 1, parseInt(e.target.value) || 10)))}
+                  className="w-full h-12 border-[3px] border-black rounded-lg text-center font-bold text-xl bg-white text-black"
+                />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 bg-[#f5f5f5] border-t-[3px] border-black/10 flex justify-end gap-4 items-center">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 font-bold text-black hover:bg-black/5 rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onUpdate(localMin, localMax);
+              onClose();
+            }}
+            className="px-8 py-3 bg-[#1E2D43] text-white font-bold rounded-xl border-[3px] border-[#1E2D43] hover:bg-[#2a3b55] active:scale-95 transition-all shadow-lg"
+          >
+            Save Changes
+          </button>
+        </div>
+
       </div>
     </div>
   );
