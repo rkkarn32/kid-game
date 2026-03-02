@@ -7,6 +7,7 @@ interface ExploreModeProps {
     onNext: () => void;
     onRandom: () => void;
     disablePrev: boolean;
+    disableNext: boolean;
     onBack: () => void;
 }
 
@@ -16,6 +17,7 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
     onNext,
     onRandom,
     disablePrev,
+    disableNext,
     onBack
 }) => {
     const { speak } = useSpeech();
@@ -25,8 +27,23 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
         speak(current.toString());
     }, [current, speak]);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft') {
+                if (!disablePrev) {
+                    onPrev();
+                }
+            } else if (e.key === 'ArrowRight' && !disableNext) {
+                onNext();
+            }
+        };
+
+        globalThis.addEventListener('keydown', handleKeyDown);
+        return () => globalThis.removeEventListener('keydown', handleKeyDown);
+    }, [onPrev, onNext, disablePrev]);
+
     return (
-        <div className="flex flex-col items-center justify-center w-full max-w-2xl animate-fade-in p-4 relative">
+        <div className="flex flex-col items-center justify-center w-full max-w-2xl animate-fade-in p-4 relative ">
 
             {/* Header / Back Button */}
             <div className="absolute top-0 left-0 w-full flex justify-between items-center mb-8 px-4">
@@ -78,7 +95,8 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
 
                     <button
                         onClick={onNext}
-                        className="neo-btn w-16 h-16 bg-green-400 text-black rounded-2xl flex items-center justify-center text-3xl"
+                        disabled={disableNext}
+                        className="neo-btn w-16 h-16 bg-green-400 text-black rounded-2xl flex items-center justify-center text-3xl disabled:opacity-50 disabled:shadow-none disabled:translate-x-0 disabled:translate-y-0"
                     >
                         →
                     </button>

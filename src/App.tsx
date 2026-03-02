@@ -42,6 +42,7 @@ function App() {
             onPrev={prev}
             onRandom={random}
             disablePrev={current <= min}
+            disableNext={current >= max}
             onBack={() => setMode('home')}
           />
         )
