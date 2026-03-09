@@ -6,6 +6,7 @@ interface ChallengeModeProps {
     current: number;
     min: number;
     max: number;
+    showNumberLine?: boolean;
     onCorrect: () => void;
     onBack: () => void;
     onSkip: () => void;
@@ -15,6 +16,7 @@ export const ChallengeMode: React.FC<ChallengeModeProps> = ({
     current,
     min,
     max,
+    showNumberLine = false,
     onCorrect,
     onBack,
     onSkip
@@ -43,7 +45,10 @@ export const ChallengeMode: React.FC<ChallengeModeProps> = ({
 
         setOptions(Array.from(answers).sort(() => Math.random() - 0.5));
 
-        speak(`What comes before and after ${current}?`);
+        let spokenText = `What comes before and after ${current}?`;
+        if (current === min) spokenText = `What comes after ${current}?`;
+        else if (current === max) spokenText = `What comes before ${current}?`;
+        speak(spokenText);
     }, [current, min, max, speak]);
 
     const handleSelect = (num: number) => {
@@ -60,17 +65,26 @@ export const ChallengeMode: React.FC<ChallengeModeProps> = ({
         const bCorrect = (current === min) || (b === current - 1);
         const aCorrect = (current === max) || (a === current + 1);
 
+        const bFilled = (current === min) || (b !== null);
+        const aFilled = (current === max) || (a !== null);
+
         if (bCorrect && aCorrect) {
             setIsSuccess(true);
             speak("Great job!");
             // No functional timeout here, waiting for user action on Congratulations screen
-        } else if (b !== null && a !== null) {
+        } else if (bFilled && aFilled) {
             speak("Try again!");
             setTimeout(() => {
                 setBeforeInput(null);
                 setAfterInput(null);
             }, 1000);
         }
+    };
+
+    const getQuestionText = () => {
+        if (current === min) return "What comes after?";
+        if (current === max) return "What comes before?";
+        return "What comes before and after?";
     };
 
     const handleNext = () => {
@@ -101,15 +115,73 @@ export const ChallengeMode: React.FC<ChallengeModeProps> = ({
             </div>
 
             <h2 className="text-2xl font-bold mt-12 mb-8 text-center bg-white p-2 neo-border rounded-lg shadow-md">
-                What comes before and after?
+                {getQuestionText()}
             </h2>
+
+            {/* Configurable Number Line */}
+            {showNumberLine && (() => {
+                let start = min;
+                let end = max;
+
+                if (max - min > 10) {
+                    const tenBase = Math.floor(current / 10) * 10;
+
+                    if (current === max && current % 10 === 0) {
+                        // Edge case for highest bound being exactly divisible by 10 (e.g. 100)
+                        start = max - 10;
+                        end = max;
+                    } else if (current === tenBase) {
+                        // Current is perfectly on a 0 (like 20), take from middle of previous section to middle of current (15-25)
+                        start = tenBase - 5;
+                        end = tenBase + 5;
+                    } else {
+                        // Inside a 10s section (like 23), show 20 to 29
+                        start = tenBase;
+                        end = tenBase + 9;
+                    }
+
+                    // Strict boundary checks
+                    if (start < min) {
+                        start = min;
+                        end = Math.min(max, start + 10);
+                    }
+                    if (end > max) {
+                        end = max;
+                        start = Math.max(min, end - 10);
+                    }
+                }
+
+                return (
+                    <div className="w-full max-w-2xl overflow-x-auto mb-8 bg-white p-4 rounded-xl neo-border scrollbar-hide">
+                        <div className="flex gap-2 min-w-max px-2 items-end justify-start sm:justify-center">
+                            {Array.from({ length: end - start + 1 }, (_, i) => start + i).map(num => (
+                                <div
+                                    key={num}
+                                    className={`flex flex-col items-center justify-end min-w-[36px] transition-all
+                                        ${num === current ? 'scale-125 -translate-y-2' : ''}`}
+                                >
+                                    <span className={`text-lg transition-colors ${num === current ? 'text-blue-600 font-black' : 'text-gray-500 font-bold'}`}>
+                                        {num}
+                                    </span>
+                                    <div className={`w-full h-1 mt-2 rounded-t-sm transition-colors ${num === current ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                                    <div className="w-0.5 h-2 bg-gray-300" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Game Area */}
             <div className="flex items-center gap-4 mb-12">
                 {/* Before Slot */}
                 <div
-                    onClick={() => setBeforeInput(null)}
-                    className={`w-24 h-24 neo-card flex items-center justify-center text-4xl font-bold cursor-pointer transition-colors ${beforeInput === null ? 'bg-gray-100 border-dashed' : 'bg-blue-200'
+                    onClick={() => { if (current > min) setBeforeInput(null); }}
+                    className={`w-24 h-24 neo-card flex items-center justify-center text-4xl font-bold transition-colors ${current === min
+                        ? 'bg-gray-200 opacity-50 cursor-not-allowed'
+                        : beforeInput === null
+                            ? 'bg-gray-100 border-dashed cursor-pointer'
+                            : 'bg-blue-200 cursor-pointer'
                         }`}
                 >
                     {current === min ? '🚫' : (beforeInput ?? '?')}
@@ -122,8 +194,12 @@ export const ChallengeMode: React.FC<ChallengeModeProps> = ({
 
                 {/* After Slot */}
                 <div
-                    onClick={() => setAfterInput(null)}
-                    className={`w-24 h-24 neo-card flex items-center justify-center text-4xl font-bold cursor-pointer transition-colors ${afterInput === null ? 'bg-gray-100 border-dashed' : 'bg-green-200'
+                    onClick={() => { if (current < max) setAfterInput(null); }}
+                    className={`w-24 h-24 neo-card flex items-center justify-center text-4xl font-bold transition-colors ${current === max
+                        ? 'bg-gray-200 opacity-50 cursor-not-allowed'
+                        : afterInput === null
+                            ? 'bg-gray-100 border-dashed cursor-pointer'
+                            : 'bg-green-200 cursor-pointer'
                         }`}
                 >
                     {current === max ? '🚫' : (afterInput ?? '?')}

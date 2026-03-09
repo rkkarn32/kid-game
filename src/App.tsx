@@ -10,6 +10,7 @@ function App() {
   const [current, setCurrent] = useState(1)
   const [mode, setMode] = useState<'home' | 'explore' | 'challenge'>('home')
   const [showSettings, setShowSettings] = useState(false)
+  const [showNumberLine, setShowNumberLine] = useState(false)
 
   const random = useCallback(() => {
     let nextNum
@@ -52,6 +53,7 @@ function App() {
             current={current}
             min={min}
             max={max}
+            showNumberLine={showNumberLine}
             onCorrect={handleQuizCorrect}
             onBack={() => setMode('home')}
             onSkip={random}
@@ -89,9 +91,11 @@ function App() {
       <Settings
         min={min}
         max={max}
-        onUpdate={(newMin, newMax) => {
+        showNumberLine={showNumberLine}
+        onUpdate={(newMin, newMax, newShowNumberLine) => {
           setMin(newMin)
           setMax(newMax)
+          if (newShowNumberLine !== undefined) setShowNumberLine(newShowNumberLine)
           if (current < newMin) setCurrent(newMin)
           if (current > newMax) setCurrent(newMax)
         }}

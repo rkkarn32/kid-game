@@ -4,21 +4,24 @@ import { SLIDER_MIN, SLIDER_MAX } from '../util/constants';
 export const Settings: React.FC<{
   min: number;
   max: number;
-  onUpdate: (min: number, max: number) => void;
+  showNumberLine?: boolean;
+  onUpdate: (min: number, max: number, showNumberLine?: boolean) => void;
   isOpen: boolean;
   onClose: () => void;
-}> = ({ min, max, onUpdate, isOpen, onClose }) => {
+}> = ({ min, max, showNumberLine = false, onUpdate, isOpen, onClose }) => {
   /* Local state for buffering changes */
   const [localMin, setLocalMin] = useState(min);
   const [localMax, setLocalMax] = useState(max);
+  const [localShowNumberLine, setLocalShowNumberLine] = useState(showNumberLine);
 
   /* Reset local state when opening */
   useEffect(() => {
     if (isOpen) {
       setLocalMin(min);
       setLocalMax(max);
+      setLocalShowNumberLine(showNumberLine);
     }
-  }, [isOpen, min, max]);
+  }, [isOpen, min, max, showNumberLine]);
 
   const [contentType, setContentType] = useState<'numbers' | 'letters' | 'both'>('numbers');
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -179,6 +182,23 @@ export const Settings: React.FC<{
             </div>
           </div>
 
+          {/* Number Line Toggle */}
+          <div className="flex justify-between items-center bg-white p-4 rounded-xl border-[3px] border-black">
+            <div>
+              <h3 className="text-lg font-black text-black">Number Line Help</h3>
+              <p className="text-xs text-gray-500 font-bold">Show number line in Challenge Mode</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={localShowNumberLine}
+                onChange={(e) => setLocalShowNumberLine(e.target.checked)}
+              />
+              <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-[24px] after:w-[24px] after:transition-all peer-checked:bg-[#1E2D43] border-[3px] border-black"></div>
+            </label>
+          </div>
+
         </div>
 
         {/* Footer */}
@@ -191,7 +211,7 @@ export const Settings: React.FC<{
           </button>
           <button
             onClick={() => {
-              onUpdate(localMin, localMax);
+              onUpdate(localMin, localMax, localShowNumberLine);
               onClose();
             }}
             className="px-8 py-3 bg-[#1E2D43] text-white font-bold rounded-xl border-[3px] border-[#1E2D43] hover:bg-[#2a3b55] active:scale-95 transition-all shadow-lg"
