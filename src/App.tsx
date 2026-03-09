@@ -11,6 +11,7 @@ function App() {
   const [mode, setMode] = useState<'home' | 'explore' | 'challenge'>('home')
   const [showSettings, setShowSettings] = useState(false)
   const [showNumberLine, setShowNumberLine] = useState(false)
+  const [voiceOnly, setVoiceOnly] = useState(false)
 
   const random = useCallback(() => {
     let nextNum
@@ -45,6 +46,7 @@ function App() {
             disablePrev={current <= min}
             disableNext={current >= max}
             onBack={() => setMode('home')}
+            voiceOnly={voiceOnly}
           />
         )
       case 'challenge':
@@ -92,10 +94,12 @@ function App() {
         min={min}
         max={max}
         showNumberLine={showNumberLine}
-        onUpdate={(newMin, newMax, newShowNumberLine) => {
+        voiceOnly={voiceOnly}
+        onUpdate={(newMin, newMax, newShowNumberLine, newVoiceOnly) => {
           setMin(newMin)
           setMax(newMax)
           if (newShowNumberLine !== undefined) setShowNumberLine(newShowNumberLine)
+          if (newVoiceOnly !== undefined) setVoiceOnly(newVoiceOnly)
           if (current < newMin) setCurrent(newMin)
           if (current > newMax) setCurrent(newMax)
         }}

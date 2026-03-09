@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSpeech } from '../hooks/useSpeech';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ExploreModeProps {
     current: number;
@@ -9,6 +10,7 @@ interface ExploreModeProps {
     disablePrev: boolean;
     disableNext: boolean;
     onBack: () => void;
+    voiceOnly?: boolean;
 }
 
 export const ExploreMode: React.FC<ExploreModeProps> = ({
@@ -18,14 +20,62 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
     onRandom,
     disablePrev,
     disableNext,
-    onBack
+    onBack,
+    voiceOnly = false
 }) => {
     const { speak } = useSpeech();
+    const { startListening, transcript, isListening } = useSpeechRecognition();
+    const lastProcessedTranscript = useRef<string | null>(null);
 
     // Re-speak when number changes
     useEffect(() => {
-        speak(current.toString());
-    }, [current, speak]);
+        if (voiceOnly) {
+            speak("What number is this?", () => {
+                startListening();
+            });
+        } else {
+            speak(current.toString());
+        }
+    }, [current, speak, voiceOnly, startListening]);
+
+    // Handle transcript changes
+    useEffect(() => {
+        if (!voiceOnly || !transcript) {
+            lastProcessedTranscript.current = transcript || null;
+            return;
+        }
+
+        if (transcript === lastProcessedTranscript.current) {
+            return;
+        }
+        lastProcessedTranscript.current = transcript;
+
+        const normalizedTranscript = transcript.toLowerCase().trim();
+        const normalizedCurrent = current.toString();
+
+        // Simple match or word match for numbers 1-10
+        const numberWords: Record<string, string> = {
+            '1': 'one', '2': 'two', '3': 'three', '4': 'four', '5': 'five',
+            '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine', '10': 'ten'
+        };
+
+        const isMatch = normalizedTranscript === normalizedCurrent ||
+            normalizedTranscript === numberWords[normalizedCurrent];
+
+        if (isMatch) {
+            speak("Congratulations, you did it", () => {
+                if (!disableNext) {
+                    onNext();
+                } else {
+                    onRandom(); // If at max, go to random or just stay? user said move to next.
+                }
+            });
+        } else {
+            speak("Sorry this didn't match, can you try again?", () => {
+                startListening();
+            });
+        }
+    }, [transcript, current, voiceOnly, speak, onNext, onRandom, disableNext, startListening]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,18 +103,25 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
                 >
                     <span>🏠</span> Back
                 </button>
-                <div className="bg-yellow-300 neo-border px-4 py-1 rounded-full text-sm font-bold">
-                    EXPLORE MODE
+                <div className="bg-yellow-300 neo-border px-4 py-1 rounded-full text-sm font-bold uppercase">
+                    Explore Mode {voiceOnly && '• Voice On'}
                 </div>
             </div>
 
             {/* Main Number Card */}
             <div className="mt-20 flex flex-col items-center gap-8">
                 <div className="neo-card w-72 h-72 flex items-center justify-center bg-white relative group">
+                    {/* Listening Indicator */}
+                    {voiceOnly && isListening && (
+                        <div className="absolute -top-4 -right-4 w-12 h-12 bg-red-500 rounded-full animate-pulse flex items-center justify-center border-4 border-white shadow-lg z-20">
+                            <span className="text-white text-xl">🎤</span>
+                        </div>
+                    )}
+
                     {/* Speaker Button inside card */}
                     <button
                         onClick={() => speak(current.toString())}
-                        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 transition-colors"
+                        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 hover:bg-blue-200 transition-colors z-10"
                         title="Speak"
                     >
                         🔊
@@ -73,6 +130,19 @@ export const ExploreMode: React.FC<ExploreModeProps> = ({
                     <span className="text-[10rem] font-black text-black leading-none group-hover:scale-110 transition-transform duration-300">
                         {current}
                     </span>
+                </div>
+
+                {/* Voice Status Text */}
+                <div className="text-center h-8 flex items-center justify-center">
+                    {voiceOnly ? (
+                        isListening ? (
+                            <p className="text-blue-600 font-bold animate-bounce">I'm listening...</p>
+                        ) : transcript ? (
+                            <p className="text-gray-500 font-medium italic">"{transcript}"</p>
+                        ) : (
+                            <p className="text-gray-400 font-medium">Wait for my question...</p>
+                        )
+                    ) : null}
                 </div>
 
                 {/* Controls */}

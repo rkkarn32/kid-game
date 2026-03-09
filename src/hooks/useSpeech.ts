@@ -17,7 +17,7 @@ export const useSpeech = () => {
     }
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const speak = useCallback((text: string, onEnd?: () => void) => {
     if (!('speechSynthesis' in window)) {
       console.error("Speech synthesis not supported");
       return;
@@ -46,6 +46,7 @@ export const useSpeech = () => {
       
       utterance.onend = () => {
         utteranceRef.current = null;
+        if (onEnd) onEnd();
       };
 
       utterance.onerror = (e) => {
