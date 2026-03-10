@@ -74,7 +74,7 @@ function App() {
           className="text-3xl sm:text-4xl font-black text-black tracking-tight cursor-pointer"
           onClick={() => setMode('home')}
         >
-          KidNum 123
+          Number Buddies
         </h1>
         <button
           onClick={() => setShowSettings(true)}
